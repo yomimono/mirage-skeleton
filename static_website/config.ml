@@ -6,8 +6,9 @@ open Mirage
  *)
 let mode =
   try match String.lowercase (Unix.getenv "FS") with
-    | "fat" -> `Fat
-    | _     -> `Crunch
+    | "fat"     -> `Fat
+    | "archive" -> `Archive
+    | _         -> `Crunch
   with Not_found ->
     `Crunch
 
@@ -17,6 +18,7 @@ let fat_ro dir =
 let fs = match mode with
   | `Fat    -> fat_ro "./htdocs"
   | `Crunch -> crunch "./htdocs"
+  | `Archive -> archive_of_files ~dir:"./htdocs" ()
 
 let net =
   try match Sys.getenv "NET" with
@@ -43,8 +45,8 @@ let main =
   foreign "Dispatch.Main" (console @-> kv_ro @-> http @-> job)
 
 let () =
-  add_to_ocamlfind_libraries ["re.str"];
-  add_to_opam_packages ["re"];
+  add_to_ocamlfind_libraries ["re.str"; "magic-mime"];
+  add_to_opam_packages ["re"; "magic-mime"];
 
   register "www" [
     main $ default_console $ fs $ http_srv
