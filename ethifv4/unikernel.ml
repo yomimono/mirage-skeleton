@@ -6,9 +6,10 @@ let green fmt  = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
 let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
 let blue fmt   = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
 
-module Main (C: CONSOLE) (N: NETWORK) (Clock : V1.CLOCK) = struct
+module Main (C: CONSOLE) (FS: KV_RO) (Clock : V1.CLOCK) = struct
 
-  module E = Ethif.Make(N)
+  module P = Netif.Make(FS)(OS.Time)
+  module E = Ethif.Make(P)
   module A = Arpv4.Make(E)(Clock)(OS.Time)
   module I = Ipv4.Make(E)(A)
   module U = Udp.Make(I)
@@ -19,30 +20,28 @@ module Main (C: CONSOLE) (N: NETWORK) (Clock : V1.CLOCK) = struct
     fn t
     >>= function
     | `Error e -> fail (Failure ("Error starting " ^ name))
-    | `Ok t -> return t
+    | `Ok t -> C.log c "connected!"; return t
 
-  let start c net _ =
+  let start c fs _ =
+    let pcap_netif_id = P.id_of_desc ~mac:Macaddr.broadcast ~source:fs
+        ~timing:None ~read:"packets.pcap" in
+    or_error c "Pcap" P.connect pcap_netif_id >>= fun net ->
     or_error c "Ethif" E.connect net
     >>= fun e ->
     or_error c "Arpv4" A.connect e 
     >>= fun a ->
-    or_error c "Ipv4" (I.connect e) a
+    or_error c "Ipv4" (I.connect ~ip:(Ipaddr.V4.of_string_exn "192.30.252.129") e) a
     >>= fun i ->
 
-    I.set_ip i (Ipaddr.V4.of_string_exn "10.0.0.2")
-    >>= fun () ->
-    I.set_ip_netmask i (Ipaddr.V4.of_string_exn "255.255.255.0")
-    >>= fun () ->
-    I.set_ip_gateways i [Ipaddr.V4.of_string_exn "10.0.0.1"]
-    >>= fun () ->
     or_error c "UDPv4" U.connect i
     >>= fun udp ->
 
-    let dhcp, offers = D.create c (N.mac net) udp in
+    let dhcp, offers = D.create c (P.mac net) udp in
     or_error c "TCPv4" T.connect i
     >>= fun tcp ->
+    C.log c "All stacks initialized.  Listening...";
 
-    N.listen net (
+    P.listen net (
       E.input
         ~arpv4:(A.input a)
         ~ipv4:(
@@ -50,11 +49,11 @@ module Main (C: CONSOLE) (N: NETWORK) (Clock : V1.CLOCK) = struct
             ~tcp:(
               T.input tcp ~listeners:
                 (function
-                  | 80 -> Some (fun flow ->
+                  | p -> Some (fun flow ->
                       let dst, dst_port = T.get_dest flow in
                       C.log_s c
-                        (green "new tcp from %s %d"
-                          (Ipaddr.V4.to_string dst) dst_port
+                        (green "new tcp from %s %d to port %d"
+                          (Ipaddr.V4.to_string dst) dst_port p
                         )
                       >>= fun () ->
 
@@ -69,7 +68,6 @@ module Main (C: CONSOLE) (N: NETWORK) (Clock : V1.CLOCK) = struct
                         T.close flow
                       | `Eof -> C.log_s c (red "read: eof")
                       | `Error e -> C.log_s c (red "read: error"))
-                  | _ -> None
                 ))
             ~udp:(
               U.input ~listeners:
