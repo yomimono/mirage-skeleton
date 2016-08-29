@@ -5,7 +5,7 @@ sudo: required
 env:
   global:
     - TESTS=false
-    - PINS="lwt.dev:https://github.com/mirage/lwt.git#tracing mirage-profile:https://github.com/mirage/mirage-profile.git"
+    - PINS="lwt.dev:https://github.com/mirage/lwt.git#tracing mirage-profile:https://github.com/mirage/mirage-profile.git mirage-fs-unix:https://github.com/yomimono/mirage-fs-unix.git#1.2.1"
     - WITH_TRACING=1
   matrix:
     - OCAML_VERSION=4.03 POST_INSTALL_HOOK="make MODE=unix && make testrun SUDO=sudo && make clean"
