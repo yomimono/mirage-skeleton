@@ -9,8 +9,8 @@ module Main (Time: TIME)(B: BLOCK) = struct
   let tests_failed = ref 0
 
   let ( >>*= ) x f = x >>= function
-    | `Error _ -> Lwt.fail (Failure "error")
-    | `Ok x -> f x
+    | Error _ -> Lwt.fail (Failure "error")
+    | Ok x -> f x
 
   let fill_with_pattern x phrase =
     for i = 0 to Cstruct.len x - 1 do
@@ -73,10 +73,10 @@ module Main (Time: TIME)(B: BLOCK) = struct
     B.get_info b >>= fun info ->
     let sectors = alloc info.B.sector_size length in
     B.write b offset sectors >|= function
-    | `Ok () ->
+    | Ok () ->
       printf "-- expected failure; got success\n%!";
       incr tests_failed
-    | `Error _ ->
+    | Error _ ->
       incr tests_passed
 
   let check_sector_read_failure b _kind _id offset length =
@@ -85,10 +85,10 @@ module Main (Time: TIME)(B: BLOCK) = struct
     B.get_info b >>= fun info ->
     let sectors = alloc info.B.sector_size length in
     B.read b offset sectors >|= function
-    | `Ok () ->
+    | Ok () ->
       printf "-- expected failure; got success\n%!";
       incr tests_failed
-    | `Error _ ->
+    | Error _ ->
       incr tests_passed
 
   let start _time b () =
