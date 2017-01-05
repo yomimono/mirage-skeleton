@@ -1,6 +1,6 @@
 open Lwt.Infix
 
-module Main (Console : V1_LWT.CONSOLE) (Time : V1_LWT.TIME) (PClock : V1_LWT.PCLOCK) (MClock : V1_LWT.MCLOCK) = struct
+module Main (Console : Mirage_types_lwt.CONSOLE) (Time : Mirage_types_lwt.TIME) (PClock : Mirage_types_lwt.PCLOCK) (MClock : Mirage_types_lwt.MCLOCK) = struct
   let str_of_time (posix_time, timezone) =
     Format.asprintf "%a" (Ptime.pp_human ?tz_offset_s:timezone ()) posix_time
 

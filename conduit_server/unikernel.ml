@@ -1,4 +1,4 @@
-open V1_LWT
+open Mirage_types_lwt
 
 module Main (CON:Conduit_mirage.S) = struct
   let src = Logs.Src.create "conduit_server" ~doc:"Conduit HTTP server"
