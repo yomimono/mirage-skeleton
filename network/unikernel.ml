@@ -12,13 +12,8 @@ module Main (C: Mirage_types_lwt.CONSOLE) (S: Mirage_types_lwt.STACKV4) = struct
         let dst, dst_port = S.TCPV4.dst flow in
         C.log c (green "new tcp connection from %s %d"
                    (Ipaddr.V4.to_string dst) dst_port) >>= fun () ->
-        S.TCPV4.read flow >>= function
-        | Ok (`Data b) ->
-          C.log c (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
-          >>= fun () ->
-          S.TCPV4.close flow
-        | Ok `Eof -> C.log c (green "read: eof")
-        | Error e -> C.log c (red "read: error %a" S.TCPV4.pp_error e)
+        let b = Cstruct.of_string "🐫\n" in
+        S.TCPV4.write flow b >|= Rresult.R.get_ok
       );
 
     S.listen s
