@@ -38,7 +38,7 @@ You can check that your build environment is working and get a feel for
 the normal workflow by trying to compile the `noop` application.
 
 ```
-    $ cd tutorials/noop
+    $ cd tutorial/noop
     $ mirage configure -t unix # initial setup for UNIX backend
     $ make depend # install dependencies
     $ make # build the program
